@@ -251,6 +251,7 @@ yTrain = outTrain
 yTest = outTest
 JTrain = []
 JTest = []
+wTrain = []
 
 print("Starting Training Data")
 for phi in (phiTrain):
@@ -265,16 +266,31 @@ for phi in (phiTrain):
     for i in range (dataPoints):
         Jw += (phi[i].dot(wStar)-yTrain[i])**2
 
+    wTrain.append(wStar)
     JTrain.append(Jw)
 
 print()
+
+trainMinJ = min(JTrain)
+trainInd = JTrain.index(trainMinJ)
+trainRMSE = np.sqrt(trainMinJ/dataPoints)
+print("Best Training Model is when m =", trainInd)
+
+#Using the 10th model's wopt
+wopt = wTrain[trainInd]
+
+print()
 print("Starting Testing Data")
+j = 0
+
 for phi in (phiTest):
-    #Calculate the weight vector
-    PTP = phi.T.dot(phi)
-    inverse = np.linalg.inv(PTP)
-    PTy = phi.T.dot(yTest)
-    wStar = inverse.dot(PTy)
+    #Utilize the same weight vector as before
+    #PTP = phi.T.dot(phi)
+    #inverse = np.linalg.inv(PTP)
+    #PTy = phi.T.dot(yTest)
+    #wStar = inverse.dot(PTy)
+
+    wStar = wTrain[j]
 
     #Calculate our loss function
     Jw = 0
@@ -282,7 +298,8 @@ for phi in (phiTest):
         Jw += (phi[i].dot(wStar)-yTest[i])**2
 
     JTest.append(Jw)
-
+    
+    j += 1
 print()
 
 trainMinJ = min(JTrain)
@@ -294,11 +311,11 @@ print("Training RMSE =",trainRMSE)
 
 print()
 
-testMinJ = min(JTest)
-testInd = JTest.index(testMinJ)
+testInd = trainInd
+testMinJ = JTest[int(testInd)]
 testRMSE = np.sqrt(testMinJ/dataPoints)
 print("Best Testing Model is when m =", testInd)
-print("The Minimum Value is",testMinJ)
+print("The Value is",testMinJ)
 print("Testing RMSE =",testRMSE)
 
 m = [0,1,2,3,4,5,6,7,8,9,10]
@@ -310,9 +327,9 @@ for i in range (len(m)):
     trainRMSETotal.append(np.sqrt(JTrain[i]/dataPoints))
     testRMSETotal.append(np.sqrt(JTest[i]/dataPoints))
 
-plt.plot(m,JTrain,color='r')
-plt.plot(m,JTest,color='b')
-plt.legend(["Training","Testing"],loc ="upper right")
+plt.plot(m,trainRMSETotal,color='r')
+plt.plot(m,testRMSETotal,color='b')
+plt.legend(["Training","Testing"],loc ="upper left")
 plt.xlabel("Model Complexity, m")
 plt.ylabel("RMSE")
 plt.title("Model Complexity vs. RMSE")
