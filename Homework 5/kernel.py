@@ -154,36 +154,36 @@ alpha = np.zeros((3,dataCount))
 sig1 = 1
 sig3 = 3
 
-if(not(test)):
-    #This will be our training stage before we utilize the mesh grid
-    for kernel in range (kernNum):
-        for iter in range (totalIter):
 
-            for i in range (dataCount):
-                data = np.array([GPA_2030[i],GRE_2030[i],1])
-                yi = labels_2030[i]
-                
-                pred = 0
-                for j in range (dataCount):
-                    xtemp = [GPA_2030[j],GRE_2030[j],1]
+#This will be our training stage before we utilize the mesh grid
+for kernel in range (kernNum):
+    for iter in range (totalIter):
 
-                    if(kernel == 0):
-                        pred += alpha[kernel][j]*labels_2030[j]*polyKern(data,xtemp)
-                    elif(kernel == 1):
-                        pred += alpha[kernel][j]*labels_2030[j]*gausKern(sig1,data,xtemp)
-                    else:
-                        pred += alpha[kernel][j]*labels_2030[j]*gausKern(sig3,data,xtemp)
-                
-                if(not(np.sign(pred) == yi)):
-                    alpha[kernel][i] += 1
-                    w[kernel] += yi*data
+        for i in range (dataCount):
+            data = np.array([GPA_2030[i],GRE_2030[i],1])
+            yi = labels_2030[i]
+            
+            pred = 0
+            for j in range (dataCount):
+                xtemp = [GPA_2030[j],GRE_2030[j],1]
 
-    print("Polynomial Kernel, w:",w[0])
-    print("Polynomial Kernel, alpha:",alpha[0])
-    print("Gaussian Sig1 Kernel, w:",w[1])
-    print("Gaussian Sig1 Kernel, alpha:",alpha[1])
-    print("Gaussian Sig3 Kernel, w:",w[2])
-    print("Gaussian Sig3 Kernel, alpha:",alpha[2])
+                if(kernel == 0):
+                    pred += alpha[kernel][j]*labels_2030[j]*polyKern(data,xtemp)
+                elif(kernel == 1):
+                    pred += alpha[kernel][j]*labels_2030[j]*gausKern(sig1,data,xtemp)
+                else:
+                    pred += alpha[kernel][j]*labels_2030[j]*gausKern(sig3,data,xtemp)
+            
+            if(not(np.sign(pred) == yi)):
+                alpha[kernel][i] += 1
+                w[kernel] += yi*data
+
+print("Polynomial Kernel, w:",w[0])
+print("Polynomial Kernel, alpha:",alpha[0])
+print("Gaussian Sig1 Kernel, w:",w[1])
+print("Gaussian Sig1 Kernel, alpha:",alpha[1])
+print("Gaussian Sig3 Kernel, w:",w[2])
+print("Gaussian Sig3 Kernel, alpha:",alpha[2])
 
 #Utilize these axes for our 0-4 range
 axes = np.linspace(0,4)
