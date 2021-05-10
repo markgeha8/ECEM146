@@ -33,43 +33,38 @@ for i in range (dataCount):
 #Priors based on Bernoulli
 py_0 = noCount/dataCount
 
-#Mean is simply mean of each group
-u0_gpa = np.sum(GPA_2030_n)/noCount
-u0_gre = np.sum(GRE_2030_n)/noCount
-u1_gpa = np.sum(GPA_2030_y)/yesCount
-u1_gre = np.sum(GRE_2030_y)/yesCount
+#Mean is simply mean of each group (Confirmed)
+u0_gpa = np.mean(GPA_2030_n)
+u0_gre = np.mean(GRE_2030_n)
+u1_gpa = np.mean(GPA_2030_y)
+u1_gre = np.mean(GRE_2030_y)
 
-#Variance when they're equal is slightly more complicated
-varYesGPA = 0
-varYesGRE = 0
-varNoGPA = 0
-varNoGRE = 0
+#Unequal Variances
+sigGPAy = np.var(GPA_2030_y)
+sigGREy = np.var(GRE_2030_y)
+sigGPAn = np.var(GPA_2030_n)
+sigGREn = np.var(GRE_2030_n)
 
-for i in range (yesCount):
-    varYesGPA += (GPA_2030_y[i]-u1_gpa)**2
-    varYesGRE += (GRE_2030_y[i]-u1_gre)**2
-
-for i in range (noCount):
-    varNoGPA += (GPA_2030_n[i]-u0_gpa)**2
-    varNoGRE += (GRE_2030_n[i]-u0_gre)**2
-
-#Equal variances
-sigEqualGPA = (noCount/dataCount)*(varNoGPA/noCount)+(yesCount/dataCount)*(varYesGPA/yesCount)
-sigEqualGRE = (noCount/dataCount)*(varNoGRE/noCount)+(yesCount/dataCount)*(varYesGRE/yesCount)
-
-#Unequal variances
-sigGPAy = varYesGPA/yesCount
-sigGREy = varYesGRE/yesCount
-sigGPAn = varNoGPA/noCount
-sigGREn = varNoGRE/noCount
+#Equal variances is weighted sum of sign and sigy
+sigEqualGPA = (noCount/dataCount)*sigGPAn+(yesCount/dataCount)*sigGPAy
+sigEqualGRE = (noCount/dataCount)*sigGREn+(yesCount/dataCount)*sigGREy
 
 #Decision Boundaries
 #Equal variances
-bGPAequal = -(sigEqualGPA/(u1_gpa-u0_gpa))*(np.log((1-py_0)/py_0)+(u0_gpa**2-u1_gpa**2)/(2*sigEqualGPA))
-bGREequal = -(sigEqualGRE/(u1_gre-u0_gre))*(np.log((1-py_0)/py_0)+(u0_gre**2-u1_gre**2)/(2*sigEqualGRE))
+#Following w1x + w0 = 0, we can solve by saying x = -w0/w1 -> Used quadratic equations but updated sigma
+w1 = [-2*(u0_gpa/sigEqualGPA-u1_gpa/sigEqualGPA),-2*(u0_gre/sigEqualGRE-u1_gre/sigEqualGRE)]
+w0 = [(u0_gpa**2/sigEqualGPA-u1_gpa**2/sigEqualGPA)+np.log((1-py_0)*np.sqrt(sigEqualGPA/sigEqualGPA)/(py_0)),
+     (u0_gre**2/sigEqualGRE-u1_gre**2/sigEqualGRE)+np.log((1-py_0)*np.sqrt(sigEqualGRE/sigEqualGRE)/(py_0))]
+
+b = np.zeros(2)
+
+for i in range (2):
+    b[i] = -w0[i]/w1[i]
+
+bGPAequal = b[0]
+bGREequal = b[1]
 
 print("GPA2030 Statistics")
-print("__________________")
 print("Prior Probability of Non-Attending =",py_0)
 print("u_o =",u0_gpa)
 print("u_1 =",u1_gpa)
@@ -78,8 +73,8 @@ print("Variance of Admitted =",sigGPAy)
 print("Variance of Non-Admitted =",sigGPAn)
 print("Equal Decision Boundary, b =",bGPAequal)
 print()
-print("GRE2030 Statistics")
 print("__________________")
+print("GRE2030 Statistics")
 print("Prior Probability of Non-Attending =",py_0)
 print("u_o =",u0_gre)
 print("u_1 =",u1_gre)
@@ -90,7 +85,7 @@ print("Equal Decision Boundary, b =",bGREequal)
 
 print()
 print("______________________________________________")
-print("Testing Boundary Conditions")
+print("Testing Equal Variance Boundary Conditions")
 
 #If our x > b, then it's in class 1 (yes). If our x < b, then it's in class 0 (no)
 accuracyGPAEqual = 0
@@ -115,9 +110,14 @@ accuracyGREEqual *= 100/dataCount
 print("Equal Variance GPA Accuracy =",accuracyGPAEqual)
 print("Equal Variance GRE Accuracy =",accuracyGREEqual)
 
-a = [1/sigGPAy-1/sigGPAn,1/sigGREy-1/sigGREn]
-b = [-2*(u1_gpa/sigGPAy-u0_gpa/sigGPAn),-2*(u1_gre/sigGREy-u0_gre/sigGREn)]
-c = [(u1_gpa**2/sigGPAy-u0_gpa**2/sigGPAn)+np.log((1-py_0)*np.sqrt(sigGPAn/sigGPAy)/(py_0)),(u1_gre**2/sigGREy-u0_gre**2/sigGREn)+np.log((1-py_0)*np.sqrt(sigGREn/sigGREy)/(py_0))]
+
+print()
+print("______________________________________________")
+print("Testing Unequal Variance Boundary Conditions")
+
+a = [1/sigGPAn-1/sigGPAy,1/sigGREn-1/sigGREy]
+b = [-2*(u0_gpa/sigGPAn-u1_gpa/sigGPAy),-2*(u0_gre/sigGREn-u1_gre/sigGREy)]
+c = [(u0_gpa**2/sigGPAn-u1_gpa**2/sigGPAy)+np.log((1-py_0)*np.sqrt(sigGPAn/sigGPAy)/(py_0)),(u0_gre**2/sigGREn-u1_gre**2/sigGREy)+np.log((1-py_0)*np.sqrt(sigGREn/sigGREy)/(py_0))]
 
 root1 = np.zeros(2)
 root2 = np.zeros(2)
@@ -134,21 +134,23 @@ print("The roots for our GPA are:",root1[0],"and",root2[0])
 print("The roots for our GRE are:",root1[1],"and",root2[1])
 
 #To test the accuracies of these
-#If our x > b, then it's in class 1 (yes). If our x < b, then it's in class 0 (no)
+#If our x > root2, then it's in class 1 (yes). If our x < root2, then it's in class 0 (no)
 accuracyGPAUnequal = 0
 accuracyGREUnequal = 0
+
+#Because our roots have 2 outside the range (>4 or <0), we can focus on root 1
 for i in range (yesCount):
-    if((GPA_2030_y[i] >= root1[0] and GPA_2030_y[i] < root2[0]) or (GPA_2030_y[i] <= root1[0] and GPA_2030_y[i] > root2[0])):
+    if(GPA_2030_y[i] >= root2[0]):
         accuracyGPAUnequal += 1
 
-    if((GRE_2030_y[i] >= root1[1] and GRE_2030_y[i] < root2[1]) or (GRE_2030_y[i] <= root1[1] and GRE_2030_y[i] > root2[1])):
+    if(GRE_2030_y[i] >= root2[1]):
         accuracyGREUnequal += 1
 
 for i in range (noCount):
-    if(not((GPA_2030_n[i] >= root1[0] and GPA_2030_n[i] < root2[0]) or (GPA_2030_n[i] <= root1[0] and GPA_2030_n[i] > root2[0]))):
+    if(GPA_2030_n[i] < root2[0]):
         accuracyGPAUnequal += 1
     
-    if(not((GRE_2030_n[i] >= root1[1] and GRE_2030_n[i] < root2[1]) or (GRE_2030_n[i] <= root1[1] and GRE_2030_n[i] > root2[1]))):
+    if(GRE_2030_n[i] < root2[1]):
         accuracyGREUnequal += 1
 
 accuracyGPAUnequal *= 100/dataCount
@@ -170,18 +172,21 @@ for i in range (noCount):
 
 yBound = np.linspace(-1,1,num=2)
 xBound = [bGPAequal,bGPAequal]
-plt.plot(xBound,yBound,color='k')
+plt.plot(xBound,yBound,color='y')
 
 x0 = np.linspace(u0_gpa - 3*np.sqrt(sigEqualGPA), u0_gpa + 3*np.sqrt(sigEqualGPA), 100)
-plt.plot(x0, stats.norm.pdf(x0, u0_gpa, sigEqualGPA))
+y0 = py_0/np.sqrt(2*np.pi*sigEqualGPA)*np.exp(-(x0-u0_gpa)**2/sigEqualGPA)
+plt.plot(x0, y0)
 
 x1 = np.linspace(u1_gpa - 3*np.sqrt(sigEqualGPA), u1_gpa + 3*np.sqrt(sigEqualGPA), 100)
-plt.plot(x1, stats.norm.pdf(x1, u1_gpa, sigEqualGPA))
+y1 = (1-py_0)/np.sqrt(2*np.pi*sigEqualGPA)*np.exp(-(x1-u1_gpa)**2/sigEqualGPA)
+plt.plot(x1, y1)
 
 plt.xlabel("GPA")
 plt.title("GPA2030 Equal Variances")
 plt.show()
 
+#Equal GRE visualization
 for i in range (yesCount):
     marker = 'o'
     color = 'r'
@@ -193,19 +198,21 @@ for i in range (noCount):
 
 yBound = np.linspace(-1,1,num=2)
 xBound = [bGREequal,bGREequal]
-plt.plot(xBound,yBound,color='k')
+plt.plot(xBound,yBound,color='y')
 
 x0 = np.linspace(u0_gre - 3*np.sqrt(sigEqualGRE), u0_gre + 3*np.sqrt(sigEqualGRE), 100)
-plt.plot(x0, stats.norm.pdf(x0, u0_gre, sigEqualGRE))
+y0 = py_0/np.sqrt(2*np.pi*sigEqualGRE)*np.exp(-(x0-u0_gre)**2/sigEqualGRE)
+plt.plot(x0, y0)
 
 x1 = np.linspace(u1_gre - 3*np.sqrt(sigEqualGRE), u1_gre + 3*np.sqrt(sigEqualGRE), 100)
-plt.plot(x1, stats.norm.pdf(x1, u1_gre, sigEqualGRE))
+y1 = (1-py_0)/np.sqrt(2*np.pi*sigEqualGRE)*np.exp(-(x1-u1_gre)**2/sigEqualGRE)
+plt.plot(x1, y1)
 
 plt.xlabel("GRE")
 plt.title("GRE2030 Equal Variances")
 plt.show()
 
-#Unequal variances
+#Unequal GPA variances
 for i in range (yesCount):
     marker = 'o'
     color = 'r'
@@ -215,20 +222,27 @@ for i in range (noCount):
     color = 'b'
     plt.scatter(GPA_2030_n[i],0,color=color,marker=marker)
 
-xBound = np.linspace(2,3,num=25)
+xBound = np.linspace(2.5,3,num=25)
 yBound = (xBound**2)*a[0]+xBound*b[0]+c[0]
 plt.plot(xBound,yBound,color='k')
 
+yBound = np.linspace(-1,1,num=2)
+xBound = [root2[0],root2[0]]
+plt.plot(xBound,yBound,color='y')
+
 x0 = np.linspace(u0_gpa - 3*np.sqrt(sigGPAn), u0_gpa + 3*np.sqrt(sigGPAn), 100)
-plt.plot(x0, stats.norm.pdf(x0, u0_gpa, sigGPAn))
+y0 = py_0/np.sqrt(2*np.pi*sigGPAn)*np.exp(-(x0-u0_gpa)**2/sigGPAn)
+plt.plot(x0, y0)
 
 x1 = np.linspace(u1_gpa - 3*np.sqrt(sigGPAy), u1_gpa + 3*np.sqrt(sigGPAy), 100)
-plt.plot(x1, stats.norm.pdf(x1, u1_gpa, sigGPAy))
+y1 = (1-py_0)/np.sqrt(2*np.pi*sigGPAy)*np.exp(-(x1-u1_gpa)**2/sigGPAy)
+plt.plot(x1, y1)
 
 plt.xlabel("GPA")
 plt.title("GPA2030 Unequal Variances")
 plt.show()
 
+#Unequal GRE variances
 for i in range (yesCount):
     marker = 'o'
     color = 'r'
@@ -238,15 +252,21 @@ for i in range (noCount):
     color = 'b'
     plt.scatter(GRE_2030_n[i],0,color=color,marker=marker)
 
-xBound = np.linspace(1.5,2.75,num=25)
+xBound = np.linspace(2.5,3,num=25)
 yBound = (xBound**2)*a[1]+xBound*b[1]+c[1]
 plt.plot(xBound,yBound,color='k')
 
+yBound = np.linspace(-1,1,num=2)
+xBound = [root2[1],root2[1]]
+plt.plot(xBound,yBound,color='y')
+
 x0 = np.linspace(u0_gre - 3*np.sqrt(sigGREn), u0_gre + 3*np.sqrt(sigGREn), 100)
-plt.plot(x0, stats.norm.pdf(x0, u0_gre, sigGREn))
+y0 = py_0/np.sqrt(2*np.pi*sigGREn)*np.exp(-(x0-u0_gre)**2/sigGREn)
+plt.plot(x0, y0)
 
 x1 = np.linspace(u1_gre - 3*np.sqrt(sigGREy), u1_gre + 3*np.sqrt(sigGREy), 100)
-plt.plot(x1, stats.norm.pdf(x1, u1_gre, sigGREy))
+y1 = (1-py_0)/np.sqrt(2*np.pi*sigGREy)*np.exp(-(x1-u1_gre)**2/sigGREy)
+plt.plot(x1, y1)
 
 plt.xlabel("GRE")
 plt.title("GRE2030 Unequal Variances")
